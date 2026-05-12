@@ -10,8 +10,19 @@ from app.models.task import Task
 from app.models.user import User
 from app.schemas.board import BoardCreate, BoardResponse, BoardReorder, BoardUpdate, BoardWithTasks
 from app.schemas.task import TaskResponse
+from app.services.ws_manager import manager
 
 router = APIRouter()
+
+
+def _board_to_dict(board: Board) -> dict:
+    return {
+        "id": board.id,
+        "name": board.name,
+        "project_id": board.project_id,
+        "position": board.position,
+        "created_at": board.created_at.isoformat() if board.created_at else None,
+    }
 
 
 async def _get_board_or_404(board_id: str, db: AsyncSession) -> Board:
@@ -58,6 +69,7 @@ async def create_board(
     db.add(board)
     await db.commit()
     await db.refresh(board)
+    await manager.broadcast(data.project_id, "board_created", _board_to_dict(board))
     return board
 
 
@@ -69,17 +81,21 @@ async def reorder_boards(
     db: AsyncSession = Depends(get_db),
 ):
     boards = []
+    project_id = None
     for idx, board_id in enumerate(data.board_ids):
         result = await db.execute(select(Board).where(Board.id == board_id))
         board = result.scalar_one_or_none()
         if board:
             await _check_project_access(board.project_id, current_user, db)
+            project_id = board.project_id
             board.position = idx
             db.add(board)
             boards.append(board)
     await db.commit()
     for board in boards:
         await db.refresh(board)
+    if project_id:
+        await manager.broadcast(project_id, "board_updated", [_board_to_dict(b) for b in boards])
     return boards
 
 
@@ -110,6 +126,7 @@ async def update_board(
     db.add(board)
     await db.commit()
     await db.refresh(board)
+    await manager.broadcast(board.project_id, "board_updated", _board_to_dict(board))
     return board
 
 
@@ -123,8 +140,11 @@ async def delete_board(
     project = await _check_project_access(board.project_id, current_user, db)
     if project.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owner can delete boards")
+    board_data = _board_to_dict(board)
+    project_id = board.project_id
     await db.delete(board)
     await db.commit()
+    await manager.broadcast(project_id, "board_deleted", board_data)
 
 
 @router.get("/{board_id}/tasks", response_model=list[TaskResponse])

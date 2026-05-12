@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   DndContext,
@@ -20,6 +20,7 @@ import { projectsApi, boardsApi, tasksApi, type Task } from '../lib/api'
 import BoardColumn from '../components/board/BoardColumn'
 import TaskCard from '../components/board/TaskCard'
 import TaskDetailModal from '../components/modals/TaskDetailModal'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 export default function BoardView() {
   const { id: projectId } = useParams<{ id: string }>()
@@ -34,6 +35,26 @@ export default function BoardView() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
+
+  // ── WebSocket ─────────────────────────────────────────────────────────────
+  const { isConnected, lastMessage } = useWebSocket(projectId)
+
+  useEffect(() => {
+    if (!lastMessage) return
+    const { event } = lastMessage
+
+    if (event === 'board_created' || event === 'board_updated' || event === 'board_deleted') {
+      queryClient.invalidateQueries({ queryKey: ['boards', projectId] })
+    } else if (
+      event === 'task_created' ||
+      event === 'task_updated' ||
+      event === 'task_deleted' ||
+      event === 'task_moved'
+    ) {
+      // Invalidate tasks for this project (board ids may vary, so invalidate broadly)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    }
+  }, [lastMessage, projectId, queryClient])
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: project } = useQuery({
@@ -271,14 +292,33 @@ export default function BoardView() {
         >
           <Kanban size={16} style={{ color: project?.color ?? '#6366f1' }} />
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-base font-semibold text-slate-100">
             {project?.name ?? 'Loading...'}
           </h1>
-          {project?.description && (
-            <p className="text-xs text-slate-500 mt-0.5">{project.description}</p>
+          {/* Connection status indicator */}
+          <div
+            className="relative flex items-center"
+            title={isConnected ? 'Live: Connected' : 'Reconnecting...'}
+          >
+            {isConnected ? (
+              <>
+                {/* Outer pulse ring */}
+                <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                {/* Inner solid dot */}
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              </>
+            ) : (
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+            )}
+          </div>
+          {!isConnected && (
+            <span className="text-xs text-red-400 leading-none">Reconnecting...</span>
           )}
         </div>
+        {project?.description && (
+          <p className="text-xs text-slate-500 mt-0.5 hidden sm:block">{project.description}</p>
+        )}
         <div className="ml-auto text-xs text-slate-600">
           {boards.length} boards &middot; {Object.values(effectiveTaskMap).flat().length} tasks
         </div>

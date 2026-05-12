@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import create_tables
-from app.routes import auth, boards, projects, tasks
+from app.routes import auth, boards, projects, tasks, ws
 
 
 @asynccontextmanager
@@ -32,6 +32,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(boards.router, prefix="/api/boards", tags=["boards"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(ws.router, prefix="/api", tags=["websocket"])
 
 
 @app.get("/api/health")
