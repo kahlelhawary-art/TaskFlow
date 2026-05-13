@@ -7,6 +7,12 @@ settings = get_settings()
 
 _db_url = settings.DATABASE_URL
 
+# Render provides DATABASE_URL as postgresql:// or postgres:// — asyncpg requires postgresql+asyncpg://
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 # Build engine kwargs based on the database backend
 if _db_url.startswith("sqlite"):
     _engine_kwargs = {
