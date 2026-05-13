@@ -46,6 +46,9 @@ node_modules/
 dist/
 .next/
 
+# Docker / Postgres
+postgres_data/
+
 # Alembic
 backend/alembic/versions/*.py
 !backend/alembic/versions/README

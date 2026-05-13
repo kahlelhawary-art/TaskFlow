@@ -5,11 +5,21 @@ from app.config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False,
-    connect_args={"check_same_thread": False},
-)
+_db_url = settings.DATABASE_URL
+
+# Build engine kwargs based on the database backend
+if _db_url.startswith("sqlite"):
+    _engine_kwargs = {
+        "echo": False,
+        "connect_args": {"check_same_thread": False},
+    }
+else:
+    # PostgreSQL (asyncpg) — check_same_thread is SQLite-only
+    _engine_kwargs = {
+        "echo": False,
+    }
+
+engine = create_async_engine(_db_url, **_engine_kwargs)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
