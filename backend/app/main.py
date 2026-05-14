@@ -17,15 +17,26 @@ UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import logging
+    from sqlalchemy import text
+    from app.database import engine
     logger = logging.getLogger("uvicorn")
     os.makedirs(UPLOADS_DIR, exist_ok=True)
-    if os.environ.get("RESET_DB", "").lower() == "true":
-        from app.database import drop_tables
-        logger.info("RESET_DB=true — dropping all tables...")
-        await drop_tables()
-        logger.info("Tables dropped. Recreating...")
     await create_tables()
-    logger.info("Database tables ready.")
+    # Add missing columns for existing PostgreSQL tables
+    async with engine.begin() as conn:
+        for col, typ in [
+            ("full_name", "VARCHAR(255)"),
+            ("bio", "TEXT"),
+            ("phone", "VARCHAR(50)"),
+            ("location", "VARCHAR(255)"),
+            ("avatar_url", "VARCHAR(500)"),
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {typ}"))
+                logger.info(f"Added column users.{col}")
+            except Exception:
+                pass  # column already exists
+    logger.info("Database ready.")
     yield
 
 
