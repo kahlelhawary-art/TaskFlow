@@ -17,6 +17,9 @@ UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(UPLOADS_DIR, exist_ok=True)
+    if os.environ.get("RESET_DB", "").lower() == "true":
+        from app.database import drop_tables
+        await drop_tables()
     await create_tables()
     yield
 
