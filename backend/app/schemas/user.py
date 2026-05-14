@@ -36,6 +36,10 @@ class UserResponse(BaseModel):
     email: str
     username: str
     avatar_url: Optional[str] = None
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -43,7 +47,11 @@ class UserResponse(BaseModel):
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
-    avatar_url: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
 
     @field_validator("username")
     @classmethod

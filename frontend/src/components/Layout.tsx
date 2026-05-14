@@ -88,7 +88,7 @@ export default function Layout() {
         {/* User section */}
         <div className="px-3 pb-4 border-t border-gray-800 pt-3">
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
               {user?.avatar_url ? (
                 <img
                   src={user.avatar_url}

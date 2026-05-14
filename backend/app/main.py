@@ -1,7 +1,9 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import create_tables
@@ -9,9 +11,12 @@ from app.routes import auth, boards, projects, tasks, ws
 
 settings = get_settings()
 
+UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
     await create_tables()
     yield
 
@@ -30,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount uploads directory for serving avatar images
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])

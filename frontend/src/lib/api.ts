@@ -33,6 +33,10 @@ export interface User {
   email: string
   username: string
   avatar_url?: string | null
+  full_name?: string | null
+  bio?: string | null
+  phone?: string | null
+  location?: string | null
   created_at: string
 }
 
@@ -74,6 +78,15 @@ export interface Task {
   updated_at: string
 }
 
+export interface UserUpdateData {
+  username?: string
+  email?: string
+  full_name?: string
+  bio?: string
+  phone?: string
+  location?: string
+}
+
 // ── Auth ───────────────────────────────────────────────────────────────────
 export const authApi = {
   register: (email: string, username: string, password: string) =>
@@ -84,8 +97,16 @@ export const authApi = {
 
   getMe: () => api.get<User>('/auth/me'),
 
-  updateMe: (data: { username?: string; avatar_url?: string }) =>
+  updateMe: (data: UserUpdateData) =>
     api.put<User>('/auth/me', data),
+
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<User>('/auth/me/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 // ── Projects ───────────────────────────────────────────────────────────────
