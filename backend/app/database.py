@@ -5,7 +5,7 @@ from app.config import get_settings
 
 settings = get_settings()
 
-_db_url = settings.DATABASE_URL
+_db_url = settings.DATABASE_URL.strip()
 
 # Render provides DATABASE_URL as postgresql:// or postgres:// — asyncpg requires postgresql+asyncpg://
 if _db_url.startswith("postgres://"):
