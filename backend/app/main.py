@@ -16,11 +16,16 @@ UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import logging
+    logger = logging.getLogger("uvicorn")
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     if os.environ.get("RESET_DB", "").lower() == "true":
         from app.database import drop_tables
+        logger.info("RESET_DB=true — dropping all tables...")
         await drop_tables()
+        logger.info("Tables dropped. Recreating...")
     await create_tables()
+    logger.info("Database tables ready.")
     yield
 
 
