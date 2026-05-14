@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     logger = logging.getLogger("uvicorn")
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     await create_tables()
-    # Add missing columns for existing PostgreSQL tables
+    # Migrate: add missing columns to existing PostgreSQL tables
     async with engine.begin() as conn:
         for col, typ in [
             ("full_name", "VARCHAR(255)"),
@@ -31,11 +31,13 @@ async def lifespan(app: FastAPI):
             ("location", "VARCHAR(255)"),
             ("avatar_url", "VARCHAR(500)"),
         ]:
-            try:
-                await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {typ}"))
-                logger.info(f"Added column users.{col}")
-            except Exception:
-                pass  # column already exists
+            await conn.execute(text(
+                f"DO $$ BEGIN "
+                f"ALTER TABLE users ADD COLUMN {col} {typ}; "
+                f"EXCEPTION WHEN duplicate_column THEN NULL; "
+                f"END $$;"
+            ))
+        logger.info("Migration complete — all columns verified.")
     logger.info("Database ready.")
     yield
 
